@@ -78,7 +78,6 @@ static int __init deadlock_init(void)
     return 0;
 }
 
-/* ------------------ EXIT FUNCTION ------------------ */
 static void __exit deadlock_exit(void)
 {
     printk("Deadlock module removed\n");
