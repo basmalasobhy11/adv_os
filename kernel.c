@@ -90,33 +90,31 @@ static bool detect_deadlock(void)
 	return false;
 }
 
-/* called when a thread acquires a lock */
-static void lock_acquire(int thread_id, int lock_id)
-{
-	struct thread* t;
+static void mini_lock_acquire(int thread_id, int lock_id) {
+	struct thread *t;
 	int i;
 
 	t = get_thread(thread_id);
-	if (t == NULL)
+	if (!t)
 		return;
 
-	/* add dependency edges for all locks held by the thread */
 	for (i = 0; i < t->lock_count; i++) {
+		int prev = t->locks[i];
 
-		int prev_lock = t->locks[i]; /* prev is the lock already held */
+		graph[prev][lock_id] = 1;
 
-		graph[prev_lock][lock_id] = 1; /* add edge prev_lock -> lock_id */
-
-		printk(KERN_INFO "Thread %d acquires lock %d, %d -> %d\n",
-			thread_id, lock_id, prev_lock, lock_id);
+		printk(KERN_INFO "MiniLockdep: Thread %d acquired Lock %d (edge %d -> %d)\n",
+		       thread_id, lock_id, prev, lock_id);
 	}
 
-	/* check for deadlock */
+	/* Detect + print both cases */
 	if (detect_deadlock()) {
-		printk(KERN_ALERT "Deadlock detected \n");
+		printk(KERN_WARNING " MiniLockdep WARNING: DEADLOCK DETECTED! Thread %d waiting on Lock %d\n",
+		       thread_id, lock_id);
+	} else {
+		printk(KERN_INFO "MiniLockdep: SAFE (No cycle detected)\n");
 	}
 
-	/* store lock in thread list */
 	t->locks[t->lock_count++] = lock_id;
 }
 
@@ -178,12 +176,22 @@ static int thread2_fn(void* data)
 }
 
 /* module init */
-static int __init mini_lockdep_init(void)
-{
-	printk(KERN_INFO " module loaded\n");
+static int __init mini_lockdep_init(void) {
+	printk(KERN_INFO "MiniLockdep Module Loaded\n");
 
-	t1 = kthread_run(thread1_fn, NULL, "t1");
-	t2 = kthread_run(thread2_fn, NULL, "t2");
+	/*  Deadlock scenario */
+	printk(KERN_INFO "\n test1 \n");
+
+	mini_lock_acquire(1, 1);
+	mini_lock_acquire(2, 2);
+	mini_lock_acquire(1, 2);
+	mini_lock_acquire(2, 1);
+
+	/*  Safe scenario */
+	printk(KERN_INFO "\n test2 \n");
+
+	mini_lock_acquire(3, 1);
+	mini_lock_acquire(3, 2);
 
 	return 0;
 }
