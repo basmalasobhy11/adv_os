@@ -85,7 +85,7 @@ static void mini_lock_acquire(int thread_id, int lock_id) {
 	if (!t)
 		return;
 
-	/* first lock ( dependency yet) */
+	/* first lock (no dependency yet) */
 	if (t->lock_count == 0) {
 		printk(KERN_INFO "MiniLockdep: Thread %d acquired Lock %d\n",thread_id, lock_id);
 	}
@@ -164,3 +164,12 @@ static int __init mini_lockdep_init(void) {
 	return 0;
 }
 
+/* ---------------- EXIT ---------------- */
+static void __exit mini_lockdep_exit(void) {
+	printk(KERN_INFO "MiniLockdep Module Removed\n");
+}
+
+module_init(mini_lockdep_init);
+module_exit(mini_lockdep_exit);
+
+MODULE_LICENSE("GPL");
